@@ -30,31 +30,38 @@ import com.google.firebase.firestore.firestore
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
-    var fullName by remember { mutableStateOf<String?>(null) } // State to hold the full name
     val currentUser = Firebase.auth.currentUser // Get the currently logged-in user
+    val context = LocalContext.current
+
+    if (currentUser == null) {
+        // User is not logged in, show unauthenticated home screen
+        UnauthenticatedHomeScreen(navController = navController)
+    } else {
+        // User is logged in, show authenticated home screen
+        AuthenticatedHomeScreen(navController = navController, currentUser.uid)
+    }
+}
+
+@Composable
+fun AuthenticatedHomeScreen(navController: NavHostController, userId: String) {
+    var fullName by remember { mutableStateOf<String?>(null) } // State to hold the full name
     val db = Firebase.firestore // Get Firestore instance
     val context = LocalContext.current
-    val webClientId = ""
+    val webClientId = "" // Credentials
 
-    // LaunchedEffect runs once when the Composable first enters Composition
-    // or when its keys (currentUser in this case) change.
-    LaunchedEffect(currentUser) {
-        currentUser?.let { user ->
-            db.collection("users").document(user.uid)
-                .get()
-                .addOnSuccessListener { document ->
-                    if (document != null) {
-                        fullName = document.getString("fullName") // Retrieve full name from Firestore
-                    } else {
-                        // Handle case where user document is not found
-                        println("No such document for user UID: ${user.uid}")
-                    }
+    LaunchedEffect(userId) {
+        db.collection("users").document(userId)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null) {
+                    fullName = document.getString("fullName") // Retrieve full name from Firestore
+                } else {
+                    println("No such document for user UID: $userId")
                 }
-                .addOnFailureListener { exception ->
-                    // Handle error when fetching data
-                    println("Error getting user document: $exception")
-                }
-        }
+            }
+            .addOnFailureListener { exception ->
+                println("Error getting user document: $exception")
+            }
     }
 
     Box(modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -68,15 +75,34 @@ fun HomeScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(onClick = {
-//                Firebase.auth.signOut()
                 signOut(context, webClientId) {
                     Toast.makeText(context, "Logout Successful", Toast.LENGTH_SHORT).show()
-                    navController.navigate("login") {
+                    navController.navigate("home") {
                         popUpTo("home") {inclusive = true}
                     }
                 }
-
             }) { Text("Logout") }
+        }
+    }
+}
+
+@Composable
+fun UnauthenticatedHomeScreen(navController: NavHostController) {
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Welcome to My App!",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = {
+                navController.navigate("login") {
+                    popUpTo("home") { inclusive = true } // Pop up to home so back button goes to home
+                }
+            }) {
+                Text("Login Now")
+            }
         }
     }
 }

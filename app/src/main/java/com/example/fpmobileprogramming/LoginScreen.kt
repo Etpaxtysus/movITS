@@ -3,13 +3,16 @@ package com.example.fpmobileprogramming
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +37,8 @@ import com.google.android.gms.common.SignInButton
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
@@ -41,10 +46,12 @@ fun LoginScreen(navController: NavHostController) {
     var password by remember { mutableStateOf("") }
     var forgotPasswordDialogBox by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val db = Firebase.firestore
+    val auth = Firebase.auth
 
     val googleSignInOptions = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("")
+            .requestIdToken("") // Credentials
             .requestEmail()
             .build()
     }
@@ -61,15 +68,65 @@ fun LoginScreen(navController: NavHostController) {
             val account = task.result
             val credential = GoogleAuthProvider.getCredential(account.idToken, null)
             Firebase.auth.signInWithCredential(credential)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Toast.makeText(context, "Google Sign-In Successful", Toast.LENGTH_SHORT).show()
-                        navController.navigate("home") {
-                            popUpTo("login") {inclusive = true}
+                .addOnCompleteListener { authTask ->
+                    if (authTask.isSuccessful) {
+                        val user = Firebase.auth.currentUser
+                        val fullName = account.displayName
+                        val userEmail = account.email
+
+                        user?.let { firebaseUser ->
+                            val userRef = db.collection("users").document(firebaseUser.uid)
+
+                            userRef.get()
+                                .addOnSuccessListener { document ->
+                                    if (document.exists()) {
+                                        val updates = hashMapOf<String, Any>(
+                                            "fullName" to (fullName ?: ""),
+                                            "email" to (userEmail ?: "")
+                                        )
+                                        userRef.update(updates)
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "Google Sign-In Successful (Data Updated)", Toast.LENGTH_SHORT).show()
+                                                navController.navigate("home") {
+                                                    popUpTo("login") {inclusive = true}
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(context, "Failed to update user data: ${e.message}", Toast.LENGTH_LONG).show()
+                                                navController.navigate("home") {
+                                                    popUpTo("login") {inclusive = true}
+                                                }
+                                            }
+                                    } else {
+
+                                        val userData = hashMapOf(
+                                            "fullName" to (fullName ?: ""),
+                                            "email" to (userEmail ?: ""),
+                                            "dateOfBirth" to ""
+                                        )
+                                        userRef.set(userData)
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "Google Sign-In Successful (New User)", Toast.LENGTH_SHORT).show()
+                                                navController.navigate("home") {
+                                                    popUpTo("login") {inclusive = true}
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(context, "Failed to save new user data: ${e.message}", Toast.LENGTH_LONG).show()
+                                                firebaseUser.delete()
+                                            }
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(context, "Error checking user data: ${e.message}", Toast.LENGTH_LONG).show()
+                                    navController.navigate("home") {
+                                        popUpTo("login") {inclusive = true}
+                                    }
+                                }
                         }
                     }
                     else {
-                        Toast.makeText(context, "Google Sign-In Failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Google Sign-In Failed: ${authTask.exception?.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
         }
@@ -111,8 +168,16 @@ fun LoginScreen(navController: NavHostController) {
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(24.dp))
-            val context = LocalContext.current
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = {
+                    forgotPasswordDialogBox = true
+                }) {
+                    Text("Forgot Password?")
+                }
+            }
 
             // Display the error message if it exists
             errorMessage?.let {
@@ -123,40 +188,43 @@ fun LoginScreen(navController: NavHostController) {
                 )
             }
 
-            Button(onClick = {
-                // Add specific validation checks here for login
-                if (email.isBlank() && password.isBlank()) {
-                    errorMessage = "Email and password cannot be empty."
-//                    Toast.makeText(context, "Please enter your email and password.", Toast.LENGTH_SHORT).show()
-                } else if (email.isBlank()) {
-                    errorMessage = "Email cannot be empty."
-//                    Toast.makeText(context, "Please enter your email.", Toast.LENGTH_SHORT).show()
-                } else if (password.isBlank()) {
-                    errorMessage = "Password cannot be empty."
-//                    Toast.makeText(context, "Please enter your password.", Toast.LENGTH_SHORT).show()
-                } else {
-                    errorMessage = null // Clear error if inputs are valid
-                    Firebase.auth.signInWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                Toast.makeText(
-                                    context,
-                                    "Login Successful!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
+            Button(
+                onClick = {
+                    if (email.isBlank() && password.isBlank()) {
+                        errorMessage = "Email and password cannot be empty."
+//                        Toast.makeText(context, "Please enter your email and password.", Toast.LENGTH_SHORT).show()
+                    } else if (email.isBlank()) {
+                        errorMessage = "Email cannot be empty."
+//                        Toast.makeText(context, "Please enter your email.", Toast.LENGTH_SHORT).show()
+                    } else if (password.isBlank()) {
+                        errorMessage = "Password cannot be empty."
+//                        Toast.makeText(context, "Please enter your password.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        errorMessage = null
+                        Firebase.auth.signInWithEmailAndPassword(email, password)
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    Toast.makeText(
+                                        context,
+                                        "Login Successful!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    navController.navigate("home") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        task.exception?.message ?: "Login Failed",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    task.exception?.message ?: "Login Failed",
-                                    Toast.LENGTH_SHORT
-                                ).show()
                             }
-                        }
-                }
-            }, modifier = Modifier.fillMaxWidth()) {
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(4.dp)
+            ) {
                 Text("Login")
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -214,11 +282,7 @@ fun LoginScreen(navController: NavHostController) {
                     }, onDismissRequest = {forgotPasswordDialogBox = false}
                 )
             }
-            TextButton(onClick = {
-                forgotPasswordDialogBox = true
-            }) {
-                Text("Forgot Password?")
-            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(onClick = {
