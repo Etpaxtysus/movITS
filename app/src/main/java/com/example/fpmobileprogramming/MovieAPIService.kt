@@ -26,7 +26,7 @@ class MovieApiService {
                     Log.d("HttpClient", message)
                 }
             }
-            level = LogLevel.ALL // Sangat penting untuk melihat detail request/response
+            level = LogLevel.ALL
         }
     }
 
@@ -50,10 +50,10 @@ class MovieApiService {
         return try {
             val url = "$BASE_URL/movie/$movieId?api_key=$API_KEY&language=en-US"
             Log.d("MovieApiService", "Requesting Movie Detail URL: $url")
-            httpClient.get(url).body<Movie>() // Langsung deserialisasi ke objek Movie
+            httpClient.get(url).body<Movie>()
         } catch (e: Exception) {
             Log.e("MovieApiService", "Error fetching movie detail for ID $movieId: ${e.message}", e)
-            null // Kembalikan null jika ada error
+            null
         }
     }
 
