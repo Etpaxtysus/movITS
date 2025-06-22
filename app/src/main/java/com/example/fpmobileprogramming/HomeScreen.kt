@@ -4,9 +4,12 @@ import MovieApiService
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -51,6 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -58,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow // Import TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -70,6 +78,8 @@ import com.google.firebase.firestore.firestore
 
 import android.app.DatePickerDialog
 import android.widget.DatePicker
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.lazy.grid.items
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -145,7 +155,6 @@ fun HomeScreen(navController: NavHostController) {
         bottomBar = {
             NavigationBar(
                 containerColor = Color.White,
-                // elevation = 8.dp
             ) {
                 bottomNavItems.forEachIndexed { index, item ->
                     NavigationBarItem(
@@ -208,29 +217,116 @@ fun MoviesListScreen(
     val movieApiService = remember { MovieApiService() }
     val context = LocalContext.current
 
-    Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
             if (isLoading) {
-                CircularProgressIndicator()
-                Text("Loading movies...")
+                CircularProgressIndicator(modifier = Modifier.padding(top = 64.dp))
+                Text("Loading movies...", modifier = Modifier.padding(top = 8.dp))
             } else if (errorMessage != null) {
                 Text(
                     text = "Error: $errorMessage",
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(top = 64.dp, bottom = 8.dp)
                 )
                 Button(onClick = { movieViewModel.fetchPopularMovies() }) {
                     Text("Retry")
                 }
             } else if (movies.isEmpty()) {
-                Text("No movies found.")
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(movies) { movie ->
-                        MovieItem(movie = movie, movieApiService = movieApiService) { clickedMovie ->
-                            navController.navigate("movieDetail/${clickedMovie.id}")
+                Text("No movies found.", modifier = Modifier.padding(top = 64.dp))
+            }
+        }
+
+        if (!isLoading && errorMessage == null && movies.isNotEmpty()) {
+            val top4Movies = movies.take(4) // Top 4
+            val remainingMovies = movies.drop(4) // Sisanya
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        top4Movies.getOrNull(0)?.let { movie ->
+                            MovieGridItem(
+                                movie = movie,
+                                movieApiService = movieApiService,
+                                modifier = Modifier.weight(1f)
+                            ) { clickedMovie ->
+                                navController.navigate("movieDetail/${clickedMovie.id}")
+                            }
+                        }
+                        top4Movies.getOrNull(1)?.let { movie ->
+                            MovieGridItem(
+                                movie = movie,
+                                movieApiService = movieApiService,
+                                modifier = Modifier.weight(1f)
+                            ) { clickedMovie ->
+                                navController.navigate("movieDetail/${clickedMovie.id}")
+                            }
                         }
                     }
+                    if (top4Movies.size > 2) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            top4Movies.getOrNull(2)?.let { movie ->
+                                MovieGridItem(
+                                    movie = movie,
+                                    movieApiService = movieApiService,
+                                    modifier = Modifier.weight(1f)
+                                ) { clickedMovie ->
+                                    navController.navigate("movieDetail/${clickedMovie.id}")
+                                }
+                            }
+                            top4Movies.getOrNull(3)?.let { movie ->
+                                MovieGridItem(
+                                    movie = movie,
+                                    movieApiService = movieApiService,
+                                    modifier = Modifier.weight(1f)
+                                ) { clickedMovie ->
+                                    navController.navigate("movieDetail/${clickedMovie.id}")
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            if (remainingMovies.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "More Movies",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp, start = 8.dp) // Padding kiri untuk judul More Movies
+                    )
+                }
+                item {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        items(remainingMovies) { movie ->
+                            MovieHorizontalItem(movie = movie, movieApiService = movieApiService) { clickedMovie ->
+                                navController.navigate("movieDetail/${clickedMovie.id}")
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -238,18 +334,22 @@ fun MoviesListScreen(
 }
 
 @Composable
-fun MovieItem(movie: Movie, movieApiService: MovieApiService, onClick: (Movie) -> Unit) {
+fun MovieGridItem(
+    movie: Movie,
+    movieApiService: MovieApiService,
+    modifier: Modifier = Modifier,
+    onClick: (Movie) -> Unit
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clickable { onClick(movie) }
+        modifier = modifier
+            .height(300.dp)
+            .clickable { onClick(movie) },
+        shape = RoundedCornerShape(12.dp),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             val imageUrl = movieApiService.getFullPosterUrl(movie.posterPath)
             if (imageUrl != null) {
@@ -257,43 +357,101 @@ fun MovieItem(movie: Movie, movieApiService: MovieApiService, onClick: (Movie) -
                     model = imageUrl,
                     contentDescription = movie.title,
                     modifier = Modifier
-                        .width(90.dp)
-                        .height(130.dp),
-                    contentScale = ContentScale.Crop
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    contentScale = ContentScale.FillBounds
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .width(90.dp)
-                        .height(130.dp)
-                        .padding(4.dp),
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("No Poster")
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .height(IntrinsicSize.Min)
+            ) {
                 Text(
                     text = movie.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Rating: ${String.format("%.1f", movie.voteAverage)}/10",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = movie.releaseDate ?: "N/A",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = movie.overview,
+                    text = "Rating: ${String.format("%.1f", movie.voteAverage)}",
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 3
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MovieHorizontalItem(movie: Movie, movieApiService: MovieApiService, onClick: (Movie) -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .height(280.dp)
+            .clickable { onClick(movie) },
+        shape = RoundedCornerShape(12.dp),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val imageUrl = movieApiService.getFullPosterUrl(movie.posterPath)
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = movie.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    contentScale = ContentScale.FillBounds
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No Poster")
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .height(IntrinsicSize.Min)
+            ) {
+                Text(
+                    text = movie.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Rating: ${String.format("%.1f", movie.voteAverage)}",
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
         }
@@ -375,9 +533,15 @@ fun SearchMoviesTabContent(
         } else if (searchQuery.isNotBlank() && searchResults.isEmpty()) {
             Text("No results found for \"$searchQuery\".")
         } else if (searchResults.isNotEmpty()) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 items(searchResults) { movie ->
-                    MovieItem(movie = movie, movieApiService = movieApiService) { clickedMovie ->
+                    MovieGridItem(movie = movie, movieApiService = movieApiService) { clickedMovie ->
                         navController.navigate("movieDetail/${clickedMovie.id}")
                     }
                 }
