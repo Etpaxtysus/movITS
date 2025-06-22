@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,13 +32,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import kotlinx.coroutines.launch // Tambahkan import ini
-import android.util.Log // Tambahkan import ini untuk Log
+import android.util.Log
+import androidx.compose.foundation.background
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -71,15 +77,32 @@ fun MovieDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(movie?.title ?: "Movie Details") },
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = movie?.title ?: "Movie Details",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = Color.White,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -88,12 +111,14 @@ fun MovieDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             contentAlignment = Alignment.Center
         ) {
             if (isLoadingDetail) {
-                CircularProgressIndicator()
-                Text("Loading movie details...")
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Text("Loading movie details...", modifier = Modifier.padding(top = 8.dp))
+                }
             } else if (errorDetailMessage != null) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -111,21 +136,26 @@ fun MovieDetailScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     val imageUrl = movieApiService.getFullPosterUrl(movie?.posterPath)
                     if (imageUrl != null) {
                         AsyncImage(
                             model = imageUrl,
                             contentDescription = movie?.title,
                             modifier = Modifier
-                                .fillMaxWidth(0.7f)
-                                .height(300.dp),
-                            contentScale = ContentScale.Crop
+                                .fillMaxWidth(0.6f)
+                                .height(400.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.FillWidth
                         )
                     } else {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.7f)
+                                .fillMaxWidth(0.6f)
                                 .height(300.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.LightGray)
                                 .padding(4.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -133,127 +163,116 @@ fun MovieDetailScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
+
                     Text(
                         text = movie?.title ?: "N/A",
                         style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Rating: ${String.format("%.1f", movie?.voteAverage)}/10 (${movie?.voteCount} votes)",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Genre: ${movie?.genres?.joinToString(", ") { it.name } ?: "N/A"}",
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Release Date: ${movie?.releaseDate ?: "N/A"}",
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Overview:",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Text(
+                                text = movie?.overview ?: "No overview available.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Overview:",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.align(Alignment.Start)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = movie?.overview ?: "No overview available.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Additional Information:",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            MovieDetailInfoRow(label = "Budget", value = formatCurrency(movie?.budget))
+                            MovieDetailInfoRow(label = "Revenue", value = formatCurrency(movie?.revenue))
+                            MovieDetailInfoRow(label = "Status", value = movie?.status ?: "N/A")
+                            MovieDetailInfoRow(label = "Tagline", value = movie?.tagline ?: "N/A")
+                            MovieDetailInfoRow(label = "Homepage", value = movie?.homepage ?: "N/A")
+                            MovieDetailInfoRow(label = "Original Language", value = getLanguageDisplayName(movie?.originalLanguage))
+                            MovieDetailInfoRow(label = "Runtime", value = "${movie?.runtime ?: "N/A"} minutes")
+                            MovieDetailInfoRow(label = "Spoken Languages", value = movie?.spokenLanguages?.joinToString(", ") { it.englishName } ?: "N/A")
+                            MovieDetailInfoRow(label = "Production Companies", value = movie?.productionCompanies?.joinToString(", ") { it.name } ?: "N/A")
+                            MovieDetailInfoRow(label = "Production Countries", value = movie?.productionCountries?.joinToString(", ") { it.name } ?: "N/A")
+                            MovieDetailInfoRow(label = "Belongs To Collection", value = movie?.belongsToCollection?.name ?: "N/A")
+                        }
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Additional Information:",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.align(Alignment.Start)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Menggunakan fungsi formatCurrency
-                    Text(
-                        text = "Budget: ${formatCurrency(movie?.budget)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Revenue: ${formatCurrency(movie?.revenue)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Status: ${movie?.status ?: "N/A"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Tagline: ${movie?.tagline ?: "N/A"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Homepage: ${movie?.homepage ?: "N/A"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    // Menggunakan fungsi getLanguageDisplayName
-                    Text(
-                        text = "Original Language: ${getLanguageDisplayName(movie?.originalLanguage)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Runtime: ${movie?.runtime ?: "N/A"} minutes",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Spoken Languages: ${movie?.spokenLanguages?.joinToString(", ") { it.englishName } ?: "N/A"}", // Gunakan englishName
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Production Companies: ${movie?.productionCompanies?.joinToString(", ") { it.name } ?: "N/A"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Production Countries: ${movie?.productionCountries?.joinToString(", ") { it.name } ?: "N/A"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Belongs To Collection: ${movie?.belongsToCollection?.name ?: "N/A"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             }
         }
     }
 }
 
-// Pastikan fungsi-fungsi ini berada di luar Composable,
-// biasanya di bagian paling bawah file atau di file utilitas terpisah
+@Composable
+fun MovieDetailInfoRow(label: String, value: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
 fun formatCurrency(amount: Long?): String {
     if (amount == null || amount <= 0) {
         return "N/A"
     }
-    // Menggunakan Locale.US untuk format mata uang Dolar ($)
     val formatter = NumberFormat.getCurrencyInstance(Locale.US)
     return formatter.format(amount)
 }
@@ -262,9 +281,6 @@ fun getLanguageDisplayName(isoCode: String?): String {
     if (isoCode == null || isoCode.isBlank()) {
         return "N/A"
     }
-    // Menggunakan Locale untuk mendapatkan nama bahasa yang ditampilkan
-    // Perhatikan bahwa Locale hanya dapat mengonversi kode bahasa ISO 639-1 ke nama yang ditampilkan.
-    // Jika API memberikan kode seperti 'en-US', Anda mungkin perlu memisahkannya terlebih dahulu.
     val locale = Locale(isoCode)
     return locale.displayLanguage
 }
