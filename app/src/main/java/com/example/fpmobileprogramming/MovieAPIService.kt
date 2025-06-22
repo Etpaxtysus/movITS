@@ -46,6 +46,23 @@ class MovieApiService {
         }
     }
 
+    suspend fun searchMovies(query: String): List<Movie> {
+        if (query.isBlank()) {
+            return emptyList()
+        }
+        return try {
+            val url = "$BASE_URL/search/movie?api_key=$API_KEY&query=$query&language=en-US&page=1"
+            Log.d("MovieApiService", "Requesting Search URL: $url")
+            val response: MovieResponse = httpClient.get(url).body()
+            Log.d("MovieApiService", "Received search results: ${response.results.size}")
+            response.results
+        } catch (e: Exception) {
+            Log.e("MovieApiService", "Error searching movies for query '$query': ${e.message}", e)
+            emptyList()
+        }
+    }
+
+
     suspend fun getMovieDetail(movieId: Int): Movie? {
         return try {
             val url = "$BASE_URL/movie/$movieId?api_key=$API_KEY&language=en-US"
