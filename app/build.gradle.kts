@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    kotlin("plugin.serialization") version "1.9.0"
 }
 
 android {
@@ -65,5 +66,15 @@ dependencies {
     implementation (libs.firebase.auth.ktx)
     implementation (libs.play.services.auth)
 
+    // Ktor for network requests
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging) // Optional, for logging network requests
+
+    // Coil for image loading
+    implementation(libs.coil.compose) // Use the latest stable version
+    implementation(libs.kotlinx.serialization.json)
 
 }
