@@ -75,17 +75,16 @@ fun RegisterScreen(navController: NavHostController) {
 
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(Color.White) // Latar belakang putih
+        .background(Color.White)
         .padding(16.dp),
         contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Logo Aplikasi
             Image(
                 painter = painterResource(id = R.drawable.movits_logo),
                 contentDescription = "movITS App Logo",
-                modifier = Modifier.size(120.dp) // Ukuran logo yang sedikit lebih kecil
+                modifier = Modifier.size(120.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp)) // Jarak setelah logo
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text("Join movITS Today!",
                 style = MaterialTheme.typography.headlineMedium,
@@ -93,13 +92,7 @@ fun RegisterScreen(navController: NavHostController) {
                 modifier = Modifier.fillMaxWidth()
 
             )
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Join movITS Today!",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
+            Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = email,
                 onValueChange = {
