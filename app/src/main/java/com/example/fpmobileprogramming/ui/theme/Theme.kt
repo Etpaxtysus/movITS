@@ -11,6 +11,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -27,6 +28,9 @@ private val DarkColorScheme = darkColorScheme(
     onTertiary = Color.White,
     onBackground = Color.White,
     onSurface = Color.White,
+
+    primaryContainer = Color(0xFF2C2C2E),
+    onPrimaryContainer = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -40,6 +44,8 @@ private val LightColorScheme = lightColorScheme(
     onTertiary = Color.White,
     onBackground = Color.Black,
     onSurface = Color.Black,
+    primaryContainer = Color.White,
+    onPrimaryContainer = Color.Black
 )
 
 @Composable
@@ -60,8 +66,14 @@ fun FPMobileProgrammingTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            window.statusBarColor = colorScheme.primaryContainer.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
+                !(colorScheme.primaryContainer == Color.Black || colorScheme.primaryContainer.luminance() < 0.5f) // Gelap jika warna terang, terang jika warna gelap
+            // Atau secara sederhana:
+            // WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            // Ini akan membuat ikon gelap di tema terang, dan ikon terang di tema gelap.
+            // Pilihan terbaik jika TopAppBar Anda selalu putih (terang) adalah:
+            // WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true // Ikon gelap di status bar putih
         }
     }
 
