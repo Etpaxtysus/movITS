@@ -11,25 +11,24 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.compose.ui.graphics.luminance
 
 private val DarkColorScheme = darkColorScheme(
-    primary = MovITSLightBlue,
+    primary = MovITSDarkBlue,
     secondary = MovITSBlue,
     tertiary = Pink80,
     background = Color(0xFF1C1C1E),
-    surface = Color(0xFF1C1C1E),
+    surface = Color(0xFF1F1F1F),
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = Color.White,
     onSurface = Color.White,
-
-    primaryContainer = Color(0xFF2C2C2E),
+    primaryContainer = Color(0xFF2D2D2D),
     onPrimaryContainer = Color.White
 )
 
@@ -68,12 +67,7 @@ fun FPMobileProgrammingTheme(
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primaryContainer.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                !(colorScheme.primaryContainer == Color.Black || colorScheme.primaryContainer.luminance() < 0.5f) // Gelap jika warna terang, terang jika warna gelap
-            // Atau secara sederhana:
-            // WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            // Ini akan membuat ikon gelap di tema terang, dan ikon terang di tema gelap.
-            // Pilihan terbaik jika TopAppBar Anda selalu putih (terang) adalah:
-            // WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true // Ikon gelap di status bar putih
+                colorScheme.primaryContainer.luminance() > 0.5f
         }
     }
 

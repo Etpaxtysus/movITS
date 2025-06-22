@@ -64,8 +64,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow // Import TextOverflow
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -90,6 +89,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.isSystemInDarkTheme
 
 data class BottomNavItem(
     val route: String,
@@ -102,6 +102,7 @@ data class BottomNavItem(
 fun HomeScreen(navController: NavHostController) {
     val currentUser = Firebase.auth.currentUser
     val context = LocalContext.current
+    val isDarkTheme = isSystemInDarkTheme()
 
     var selectedItem by remember { mutableIntStateOf(0) }
     val bottomNavItems = listOf(
@@ -118,8 +119,9 @@ fun HomeScreen(navController: NavHostController) {
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val logoResource = if (isDarkTheme) R.drawable.movits_logo_dark else R.drawable.movits_logo
                         Image(
-                            painter = painterResource(id = R.drawable.movits_logo),
+                            painter = painterResource(id = logoResource),
                             contentDescription = "movITS Logo",
                             modifier = Modifier
                                 .size(45.dp)
@@ -147,14 +149,14 @@ fun HomeScreen(navController: NavHostController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
             ) {
                 bottomNavItems.forEachIndexed { index, item ->
                     NavigationBarItem(
@@ -226,24 +228,24 @@ fun MoviesListScreen(
         item {
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.padding(top = 64.dp))
-                Text("Loading movies...", modifier = Modifier.padding(top = 8.dp))
+                Text("Loading movies...", modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.onBackground)
             } else if (errorMessage != null) {
                 Text(
                     text = "Error: $errorMessage",
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 64.dp, bottom = 8.dp)
                 )
-                Button(onClick = { movieViewModel.fetchPopularMovies() }) {
+                Button(onClick = { movieViewModel.fetchPopularMovies() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                     Text("Retry")
                 }
             } else if (movies.isEmpty()) {
-                Text("No movies found.", modifier = Modifier.padding(top = 64.dp))
+                Text("No movies found.", modifier = Modifier.padding(top = 64.dp), color = MaterialTheme.colorScheme.onBackground)
             }
         }
 
         if (!isLoading && errorMessage == null && movies.isNotEmpty()) {
-            val top4Movies = movies.take(4) // Top 4
-            val remainingMovies = movies.drop(4) // Sisanya
+            val top4Movies = movies.take(4)
+            val remainingMovies = movies.drop(4)
 
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -311,7 +313,8 @@ fun MoviesListScreen(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp, start = 8.dp) // Padding kiri untuk judul More Movies
+                            .padding(bottom = 16.dp, start = 8.dp),
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 item {
@@ -342,10 +345,12 @@ fun MovieGridItem(
 ) {
     Card(
         modifier = modifier
+            .width(IntrinsicSize.Min)
             .height(300.dp)
             .clickable { onClick(movie) },
         shape = RoundedCornerShape(12.dp),
-        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -360,7 +365,7 @@ fun MovieGridItem(
                         .fillMaxWidth()
                         .weight(1f)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                    contentScale = ContentScale.FillBounds
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 Box(
@@ -368,10 +373,10 @@ fun MovieGridItem(
                         .fillMaxWidth()
                         .weight(1f)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .background(Color.LightGray),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No Poster")
+                    Text("No Poster", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -386,12 +391,14 @@ fun MovieGridItem(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Rating: ${String.format("%.1f", movie.voteAverage)}",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -406,7 +413,8 @@ fun MovieHorizontalItem(movie: Movie, movieApiService: MovieApiService, onClick:
             .height(280.dp)
             .clickable { onClick(movie) },
         shape = RoundedCornerShape(12.dp),
-        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -421,7 +429,7 @@ fun MovieHorizontalItem(movie: Movie, movieApiService: MovieApiService, onClick:
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                    contentScale = ContentScale.FillBounds
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 Box(
@@ -429,10 +437,10 @@ fun MovieHorizontalItem(movie: Movie, movieApiService: MovieApiService, onClick:
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .background(Color.LightGray),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No Poster")
+                    Text("No Poster", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Column(
@@ -446,18 +454,21 @@ fun MovieHorizontalItem(movie: Movie, movieApiService: MovieApiService, onClick:
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Rating: ${String.format("%.1f", movie.voteAverage)}",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchMoviesTabContent(
     navController: NavHostController,
@@ -500,10 +511,19 @@ fun SearchMoviesTabContent(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Search icon"
+                    contentDescription = "Search icon",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface
+            )
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -523,7 +543,7 @@ fun SearchMoviesTabContent(
 
         if (isLoadingSearch) {
             CircularProgressIndicator()
-            Text("Searching for movies...")
+            Text("Searching for movies...", color = MaterialTheme.colorScheme.onBackground)
         } else if (searchErrorMessage != null) {
             Text(
                 text = "Error: $searchErrorMessage",
@@ -531,7 +551,7 @@ fun SearchMoviesTabContent(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         } else if (searchQuery.isNotBlank() && searchResults.isEmpty()) {
-            Text("No results found for \"$searchQuery\".")
+            Text("No results found for \"$searchQuery\".", color = MaterialTheme.colorScheme.onBackground)
         } else if (searchResults.isNotEmpty()) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -547,7 +567,7 @@ fun SearchMoviesTabContent(
                 }
             }
         } else {
-            Text("Start typing to search for movies.")
+            Text("Start typing to search for movies.", color = MaterialTheme.colorScheme.onBackground)
         }
     }
 }
@@ -607,7 +627,7 @@ fun MyProfileTabContent(navController: NavHostController, userId: String, modifi
             }
     }
 
-    Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -617,7 +637,8 @@ fun MyProfileTabContent(navController: NavHostController, userId: String, modifi
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
                 shape = RoundedCornerShape(12.dp),
-                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -704,7 +725,8 @@ fun ProfileInfoRow(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
         if (actionIcon != null) {
@@ -724,11 +746,12 @@ fun ProfileInfoRow(
 
 @Composable
 fun LoginRequiredScreen(navController: NavHostController, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Please Login to Access This Feature",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = {
