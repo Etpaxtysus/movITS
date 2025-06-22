@@ -3,6 +3,8 @@ package com.example.fpmobileprogramming
 import android.app.DatePickerDialog
 import android.widget.DatePicker
 import android.widget.Toast
+import androidx.compose.foundation.Image // Import Image
+import androidx.compose.foundation.background // Import background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size // Import size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
@@ -26,8 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color // Import Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource // Import painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.Firebase
@@ -43,13 +49,13 @@ fun RegisterScreen(navController: NavHostController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var fullName by remember { mutableStateOf("") } // New state for full name
-    var dateOfBirth by remember { mutableStateOf("") } // New state for date of birth
+    var fullName by remember { mutableStateOf("") }
+    var dateOfBirth by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val auth = Firebase.auth
-    val db = Firebase.firestore // Initialize Firestore instance
+    val db = Firebase.firestore
 
     val calendar = Calendar.getInstance()
     val year = calendar.get(Calendar.YEAR)
@@ -63,15 +69,36 @@ fun RegisterScreen(navController: NavHostController) {
             selectedDate.set(selectedYear, selectedMonth, selectedDayOfMonth)
             val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             dateOfBirth = sdf.format(selectedDate.time)
-            errorMessage = null // Clear error when date is selected
+            errorMessage = null
         }, year, month, day
     )
 
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp),
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.White) // Latar belakang putih
+        .padding(16.dp),
         contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Sign Up", style = MaterialTheme.typography.headlineMedium)
+            // Logo Aplikasi
+            Image(
+                painter = painterResource(id = R.drawable.movits_logo),
+                contentDescription = "movITS App Logo",
+                modifier = Modifier.size(120.dp) // Ukuran logo yang sedikit lebih kecil
+            )
+            Spacer(modifier = Modifier.height(16.dp)) // Jarak setelah logo
+
+            Text("Join movITS Today!",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+
+            )
             Spacer(modifier = Modifier.height(24.dp))
+            Text("Join movITS Today!",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             OutlinedTextField(
                 value = email,
@@ -86,7 +113,7 @@ fun RegisterScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = fullName, // New TextField for full name
+                value = fullName,
                 onValueChange = {
                     fullName = it
                     errorMessage = null
@@ -97,13 +124,12 @@ fun RegisterScreen(navController: NavHostController) {
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Date of Birth TextField
             OutlinedTextField(
                 value = dateOfBirth,
                 onValueChange = { /* Prevent direct editing */ },
                 label = { Text("Date of Birth") },
-                readOnly = true, // Make it read-only
-                trailingIcon = { // Add calendar icon to open DatePicker
+                readOnly = true,
+                trailingIcon = {
                     Icon(
                         Icons.Default.DateRange,
                         contentDescription = "Select Date",
@@ -112,7 +138,7 @@ fun RegisterScreen(navController: NavHostController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { datePickerDialog.show() } // Make whole field clickable
+                    .clickable { datePickerDialog.show() }
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -151,19 +177,15 @@ fun RegisterScreen(navController: NavHostController) {
             }
 
             Button(onClick = {
-                // Improved validation logic to include new fields
                 if (email.isBlank() || password.isBlank() || confirmPassword.isBlank() || fullName.isBlank() || dateOfBirth.isBlank()) {
                     errorMessage = "All fields must be filled."
-//                    Toast.makeText(context, "Please fill in all fields.", Toast.LENGTH_SHORT).show()
                 } else if (password != confirmPassword) {
                     errorMessage = "Passwords do not match."
-//                    Toast.makeText(context, "Password and Confirm Password do not match.", Toast.LENGTH_SHORT).show()
-                } else if (password.length < 6) { // Add password length validation
+                } else if (password.length < 6) {
                     errorMessage = "Password must be at least 6 characters long."
-//                    Toast.makeText(context, "Password must be at least 6 characters long.", Toast.LENGTH_SHORT).show()
                 }
                 else {
-                    errorMessage = null // Clear error if inputs are valid
+                    errorMessage = null
                     auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
@@ -175,14 +197,12 @@ fun RegisterScreen(navController: NavHostController) {
                                         "email" to email
                                     )
 
-                                    db.collection("users") // Collection "users"
+                                    db.collection("users")
                                         .document(it.uid)
                                         .set(userData)
                                         .addOnSuccessListener {
                                             Toast.makeText(context, "Sign Up Successful! Please log in.", Toast.LENGTH_SHORT).show()
-                                            navController.navigate("login") {
-                                                popUpTo("register") {inclusive = true}
-                                            }
+                                            navController.navigate("login")
                                         }
                                         .addOnFailureListener { e ->
                                             Toast.makeText(context, "Failed to save user data: ${e.message}", Toast.LENGTH_LONG).show()
@@ -191,7 +211,6 @@ fun RegisterScreen(navController: NavHostController) {
                                 }
                             }
                             else {
-                                // Display Firebase Auth error message if registration fails
                                 Toast.makeText(context, task.exception?.message?:"Sign Up Failed", Toast.LENGTH_SHORT).show()
                             }
                         }
@@ -202,9 +221,7 @@ fun RegisterScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(onClick =  {
-                navController.navigate("login") {
-                    popUpTo("register") {inclusive = true}
-                }
+                navController.navigate("login")
             }) {
                 Text("Already have an account? Log In")
             }

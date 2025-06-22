@@ -3,6 +3,8 @@ package com.example.fpmobileprogramming
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image // Import Image
+import androidx.compose.foundation.background // Import background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size // Import size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -26,8 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color // Import Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource // Import painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
@@ -38,7 +44,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException // Pastikan ini diimpor
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
@@ -49,9 +55,10 @@ fun LoginScreen(navController: NavHostController) {
     val db = Firebase.firestore
     val auth = Firebase.auth
 
+    val webClientId = "" // Credentials
     val googleSignInOptions = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("") // Credentials
+            .requestIdToken(webClientId)
             .requestEmail()
             .build()
     }
@@ -88,45 +95,50 @@ fun LoginScreen(navController: NavHostController) {
                                             .addOnSuccessListener {
                                                 Toast.makeText(context, "Google Sign-In Successful (Data Updated)", Toast.LENGTH_SHORT).show()
                                                 navController.navigate("home") {
-                                                    popUpTo("login") {inclusive = true}
+                                                    popUpTo("home") { inclusive = true } // Navigasi ke home, hapus semua dari back stack hingga home
                                                 }
                                             }
                                             .addOnFailureListener { e ->
                                                 Toast.makeText(context, "Failed to update user data: ${e.message}", Toast.LENGTH_LONG).show()
                                                 navController.navigate("home") {
-                                                    popUpTo("login") {inclusive = true}
+                                                    popUpTo("home") { inclusive = true } // Navigasi ke home, hapus semua dari back stack hingga home
                                                 }
                                             }
                                     } else {
-
                                         val userData = hashMapOf(
                                             "fullName" to (fullName ?: ""),
                                             "email" to (userEmail ?: ""),
-                                            "dateOfBirth" to ""
+                                            "dateOfBirth" to "" // Atau minta pengguna mengisinya nanti
                                         )
                                         userRef.set(userData)
                                             .addOnSuccessListener {
                                                 Toast.makeText(context, "Google Sign-In Successful (New User)", Toast.LENGTH_SHORT).show()
                                                 navController.navigate("home") {
-                                                    popUpTo("login") {inclusive = true}
+                                                    popUpTo("home") { inclusive = true } // Navigasi ke home, hapus semua dari back stack hingga home
                                                 }
                                             }
                                             .addOnFailureListener { e ->
                                                 Toast.makeText(context, "Failed to save new user data: ${e.message}", Toast.LENGTH_LONG).show()
-                                                firebaseUser.delete()
+                                                firebaseUser.delete() // Hapus user Firebase jika gagal menyimpan data Firestore
                                             }
                                     }
                                 }
                                 .addOnFailureListener { e ->
                                     Toast.makeText(context, "Error checking user data: ${e.message}", Toast.LENGTH_LONG).show()
+                                    // Jika ada error Firestore, tetap navigasi ke home, asumsikan user bisa coba lagi nanti
                                     navController.navigate("home") {
-                                        popUpTo("login") {inclusive = true}
+                                        popUpTo("home") { inclusive = true } // Navigasi ke home, hapus semua dari back stack hingga home
                                     }
                                 }
                         }
                     }
                     else {
-                        Toast.makeText(context, "Google Sign-In Failed: ${authTask.exception?.message}", Toast.LENGTH_SHORT).show()
+                        val exception = authTask.exception
+                        if (exception is FirebaseAuthUserCollisionException) {
+                            Toast.makeText(context, "Google Sign-In Failed: This email is already registered with another method.", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "Google Sign-In Failed: ${exception?.message}", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
         }
@@ -135,22 +147,34 @@ fun LoginScreen(navController: NavHostController) {
         }
     }
 
-    // State for validation error message
     var errorMessage by remember { mutableStateOf<String?>(null) } // Nullable String
 
     Box(modifier = Modifier
         .fillMaxSize()
+        .background(Color.White) // Latar belakang putih
         .padding(16.dp),
         contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Login", style = MaterialTheme.typography.headlineMedium)
+            // Logo Aplikasi
+            Image(
+                painter = painterResource(id = R.drawable.movits_logo),
+                contentDescription = "movITS App Logo",
+                modifier = Modifier.size(150.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("Your Ultimate Movie Experience Awaits!",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+                )
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
                 value = email,
                 onValueChange = {
                     email = it
-                    errorMessage = null // Clear error message when user starts typing
+                    errorMessage = null
                 },
                 label = { Text("Email") },
                 singleLine = true,
@@ -161,7 +185,7 @@ fun LoginScreen(navController: NavHostController) {
                 value = password,
                 onValueChange = {
                     password = it
-                    errorMessage = null // Clear error message when user starts typing
+                    errorMessage = null
                 },
                 label = { Text("Password") },
                 singleLine = true,
@@ -179,7 +203,6 @@ fun LoginScreen(navController: NavHostController) {
                 }
             }
 
-            // Display the error message if it exists
             errorMessage?.let {
                 Text(
                     text = it,
@@ -190,18 +213,11 @@ fun LoginScreen(navController: NavHostController) {
 
             Button(
                 onClick = {
-                    if (email.isBlank() && password.isBlank()) {
+                    if (email.isBlank() || password.isBlank()) { // Gabungkan pemeriksaan blank
                         errorMessage = "Email and password cannot be empty."
-//                        Toast.makeText(context, "Please enter your email and password.", Toast.LENGTH_SHORT).show()
-                    } else if (email.isBlank()) {
-                        errorMessage = "Email cannot be empty."
-//                        Toast.makeText(context, "Please enter your email.", Toast.LENGTH_SHORT).show()
-                    } else if (password.isBlank()) {
-                        errorMessage = "Password cannot be empty."
-//                        Toast.makeText(context, "Please enter your password.", Toast.LENGTH_SHORT).show()
                     } else {
                         errorMessage = null
-                        Firebase.auth.signInWithEmailAndPassword(email, password)
+                        auth.signInWithEmailAndPassword(email, password)
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
                                     Toast.makeText(
@@ -210,7 +226,7 @@ fun LoginScreen(navController: NavHostController) {
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     navController.navigate("home") {
-                                        popUpTo("login") { inclusive = true }
+                                        popUpTo("home") { inclusive = true } // Navigasi ke home, hapus semua dari back stack hingga home
                                     }
                                 } else {
                                     Toast.makeText(
@@ -231,7 +247,8 @@ fun LoginScreen(navController: NavHostController) {
 
             AndroidView(modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(48.dp)
+                .padding(horizontal = 0.dp),
                 factory = { context ->
                     SignInButton(context).apply {
                         setSize(SignInButton.SIZE_WIDE)
@@ -286,9 +303,7 @@ fun LoginScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(onClick = {
-                navController.navigate("register") {
-                    popUpTo("login") { inclusive = true }
-                }
+                navController.navigate("register")
             }) {
                 Text("Don't have an account? Sign Up")
             }
