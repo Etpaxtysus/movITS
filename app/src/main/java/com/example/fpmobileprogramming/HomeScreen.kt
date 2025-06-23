@@ -116,7 +116,7 @@ fun HomeScreen(navController: NavHostController) {
     var selectedItem by remember { mutableIntStateOf(0) }
     val bottomNavItems = listOf(
         BottomNavItem("home_tab", Icons.Default.Home, "Home"),
-        BottomNavItem("search_movies_tab", Icons.Default.Search, "Search Movies"),
+        BottomNavItem("search_movies_tab", Icons.Default.Search, "Search"),
         // Tambahkan item "My Order" di sini
         BottomNavItem("my_order_tab", Icons.Default.ShoppingCart, "My Orders"),
         BottomNavItem("my_profile_tab", Icons.Default.AccountCircle, "My Profile")
@@ -147,7 +147,7 @@ fun HomeScreen(navController: NavHostController) {
                             Text(
                                 text = when (selectedItem) {
                                     0 -> "Popular Movies"
-                                    1 -> "Search Movies"
+                                    1 -> "Search"
                                     2 -> "My Orders" // Tambahkan label untuk My Order
                                     3 -> "My Profile"
                                     else -> ""
