@@ -2,6 +2,8 @@ package com.example.fpmobileprogramming
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import com.google.firebase.firestore.ServerTimestamp
+import java.util.Date
 
 @Serializable
 data class MovieResponse(
@@ -32,19 +34,19 @@ data class Movie(
     val video: Boolean,
     @SerialName("vote_average") val voteAverage: Double,
     @SerialName("vote_count") val voteCount: Int,
-     @SerialName("belongs_to_collection") val belongsToCollection: CollectionInfo? = null,
-     val budget: Long? = null,
-     val homepage: String? = null,
-     @SerialName("imdb_id") val imdbId: String? = null,
-     @SerialName("origin_country") val originCountry: List<String>? = null,
-     @SerialName("original_language") val originalLanguage: String,
-     @SerialName("production_companies") val productionCompanies: List<ProductionCompany>? = null,
-     @SerialName("production_countries") val productionCountries: List<ProductionCountry>? = null,
-     val revenue: Long? = null,
-     val runtime: Int? = null,
-     @SerialName("spoken_languages") val spokenLanguages: List<SpokenLanguage>? = null,
-     val status: String? = null,
-     val tagline: String? = null
+    @SerialName("belongs_to_collection") val belongsToCollection: CollectionInfo? = null,
+    val budget: Long? = null,
+    val homepage: String? = null,
+    @SerialName("imdb_id") val imdbId: String? = null,
+    @SerialName("origin_country") val originCountry: List<String>? = null,
+    @SerialName("original_language") val originalLanguage: String,
+    @SerialName("production_companies") val productionCompanies: List<ProductionCompany>? = null,
+    @SerialName("production_countries") val productionCountries: List<ProductionCountry>? = null,
+    val revenue: Long? = null,
+    val runtime: Int? = null,
+    @SerialName("spoken_languages") val spokenLanguages: List<SpokenLanguage>? = null,
+    val status: String? = null,
+    val tagline: String? = null
 )
 
 @Serializable
@@ -74,4 +76,16 @@ data class SpokenLanguage(
     @SerialName("english_name") val englishName: String,
     @SerialName("iso_639_1") val iso6391: String,
     val name: String
+)
+
+data class Order(
+    var id: String = "",
+    val userId: String = "",
+    val movieId: Int = 0,
+    val movieTitle: String = "",
+    val moviePosterUrl: String? = null,
+    val ticketQuantity: Int = 1,
+    val totalPrice: Double = 0.0,
+    @ServerTimestamp
+    val orderDate: Date? = null
 )

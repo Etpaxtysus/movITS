@@ -76,6 +76,7 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 
 import android.app.DatePickerDialog
+import android.util.Log
 import android.widget.DatePicker
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.lazy.grid.items
@@ -90,6 +91,14 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.text.style.TextAlign
+import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+
 
 data class BottomNavItem(
     val route: String,
@@ -108,6 +117,8 @@ fun HomeScreen(navController: NavHostController) {
     val bottomNavItems = listOf(
         BottomNavItem("home_tab", Icons.Default.Home, "Home"),
         BottomNavItem("search_movies_tab", Icons.Default.Search, "Search Movies"),
+        // Tambahkan item "My Order" di sini
+        BottomNavItem("my_order_tab", Icons.Default.ShoppingCart, "My Orders"),
         BottomNavItem("my_profile_tab", Icons.Default.AccountCircle, "My Profile")
     )
 
@@ -137,7 +148,8 @@ fun HomeScreen(navController: NavHostController) {
                                 text = when (selectedItem) {
                                     0 -> "Popular Movies"
                                     1 -> "Search Movies"
-                                    2 -> "My Profile"
+                                    2 -> "My Orders" // Tambahkan label untuk My Order
+                                    3 -> "My Profile"
                                     else -> ""
                                 },
                                 style = MaterialTheme.typography.headlineSmall,
@@ -164,9 +176,9 @@ fun HomeScreen(navController: NavHostController) {
                         label = { Text(item.label) },
                         selected = selectedItem == index,
                         onClick = {
-                            if (index == 0) {
+                            if (index == 0) { // Home tab
                                 selectedItem = index
-                            } else {
+                            } else { // Tabs requiring login
                                 if (currentUser != null) {
                                     selectedItem = index
                                 } else {
@@ -196,7 +208,14 @@ fun HomeScreen(navController: NavHostController) {
                     LoginRequiredScreen(navController = navController, modifier = Modifier.padding(paddingValues))
                 }
             }
-            2 -> {
+            2 -> { // Index for My Order tab
+                if (currentUser != null) {
+                    MyOrderTabContent(navController = navController, userId = currentUser.uid, modifier = Modifier.padding(paddingValues))
+                } else {
+                    LoginRequiredScreen(navController = navController, modifier = Modifier.padding(paddingValues))
+                }
+            }
+            3 -> { // Index for My Profile tab
                 if (currentUser != null) {
                     MyProfileTabContent(navController = navController, userId = currentUser.uid, modifier = Modifier.padding(paddingValues))
                 } else {
@@ -568,6 +587,182 @@ fun SearchMoviesTabContent(
             }
         } else {
             Text("Start typing to search for movies.", color = MaterialTheme.colorScheme.onBackground)
+        }
+    }
+}
+
+@Composable
+fun MyOrderTabContent(navController: NavHostController, userId: String, modifier: Modifier = Modifier) {
+    val db = FirebaseFirestore.getInstance()
+    var orders by remember { mutableStateOf<List<Order>>(emptyList()) }
+    var isLoadingOrders by remember { mutableStateOf(true) }
+    var errorMessageOrders by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(userId) {
+        isLoadingOrders = true
+        errorMessageOrders = null
+        db.collection("orders")
+            .whereEqualTo("userId", userId)
+            .orderBy("orderDate", Query.Direction.DESCENDING) // Urutkan berdasarkan tanggal terbaru
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    Log.w("MyOrderTabContent", "Listen failed.", e)
+                    errorMessageOrders = "Failed to load orders: ${e.message}"
+                    isLoadingOrders = false
+                    return@addSnapshotListener
+                }
+
+                if (snapshots != null) {
+                    val fetchedOrders = snapshots.documents.mapNotNull { document ->
+                        // Periksa apakah dokumen memiliki ID, jika tidak, Firestore akan menggenerasinya
+                        // Kita asumsikan ID pesanan di Firestore adalah ID dokumennya
+                        document.toObject(Order::class.java)?.copy(id = document.id)
+                    }
+                    orders = fetchedOrders
+                    isLoadingOrders = false
+                } else {
+                    Log.d("MyOrderTabContent", "Current data: null")
+                    isLoadingOrders = false
+                }
+            }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoadingOrders) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator()
+                Text("Loading your orders...", modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.onBackground)
+            }
+        } else if (errorMessageOrders != null) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Error: $errorMessageOrders",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+        } else if (orders.isEmpty()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = "My Order Icon",
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No Orders Yet",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "You haven't purchased any tickets yet. Go to the movie details to buy one!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    Text(
+                        text = "Your Orders",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                items(orders) { order ->
+                    OrderItemCard(order = order)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OrderItemCard(order: Order) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Gambar Poster Film
+            if (order.moviePosterUrl != null) {
+                AsyncImage(
+                    model = order.moviePosterUrl,
+                    contentDescription = order.movieTitle,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No Poster", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = order.movieTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Tickets: ${order.ticketQuantity}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Total: ${formatCurrency(order.totalPrice.toLong())}", // Menggunakan formatCurrency
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+                order.orderDate?.let { date ->
+                    Text(
+                        text = "Ordered On: ${dateFormat.format(date)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
